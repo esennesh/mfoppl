@@ -1,0 +1,76 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.7.
+--
+-- see: https://github.com/sol/hpack
+
+name:           mfoppl
+version:        0.1.0.0
+description:    Please see the README on Github at <https://github.com/esennesh/mfoppl#readme>
+homepage:       https://github.com/esennesh/mfoppl#readme
+bug-reports:    https://github.com/esennesh/mfoppl/issues
+author:         Eli Sennesh
+maintainer:     esennesh@ccs.neu.edu
+copyright:      2023 Eli Sennesh
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/esennesh/mfoppl
+
+library
+  exposed-modules:
+      Import
+      Run
+      Types
+      Util
+  other-modules:
+      Paths_mfoppl
+  hs-source-dirs:
+      src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.11 && <10
+    , freer-simple
+    , rio >=0.1.12.0
+    , statistics
+  default-language: Haskell2010
+
+executable mfoppl-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_mfoppl
+  hs-source-dirs:
+      app
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.11 && <10
+    , freer-simple
+    , mfoppl
+    , optparse-simple
+    , rio >=0.1.12.0
+    , statistics
+  default-language: Haskell2010
+
+test-suite mfoppl-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      UtilSpec
+      Paths_mfoppl
+  hs-source-dirs:
+      test
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.11 && <10
+    , freer-simple
+    , hspec
+    , mfoppl
+    , rio >=0.1.12.0
+    , statistics
+  default-language: Haskell2010
