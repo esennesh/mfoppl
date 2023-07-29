@@ -46,6 +46,7 @@ library
 executable mfoppl-exe
   main-is: Main.hs
   other-modules:
+      Examples
       Paths_mfoppl
   hs-source-dirs:
       app
