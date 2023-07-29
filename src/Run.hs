@@ -55,10 +55,15 @@ randomize :: (MonadIO m, LastMember m eff) =>
              Eff (FReader.Reader HilbertCube ': eff) t -> Eff eff t
 randomize p = newStdGen >>= \g -> FReader.runReader (seedCube g) p
 
+traceRandom :: MonadIO m => Eff '[FReader.Reader HilbertCube,
+                                  Writer Trace, Fresh, m] t ->
+                            m (t, Trace)
+traceRandom = runM . evalFresh 0 . runWriter . randomize
+
 ancestor :: MonadIO m => Eff '[Generative, FReader.Reader HilbertCube,
                                Writer Trace, Fresh, m] t ->
                          m (t, Trace)
-ancestor = runM . evalFresh 0 . runWriter . randomize . runGenerative
+ancestor = traceRandom . runGenerative
 
 run :: RIO App ()
 run = do
