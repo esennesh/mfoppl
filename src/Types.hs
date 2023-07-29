@@ -7,9 +7,11 @@ module Types
   , App (..)
   , Borel (..)
   , Distribution (..)
+  , factor
   , Generative (..)
   , HilbertCube
   , Options (..)
+  , sample
   , StandardBorel (..)
   , Trace (..)
   ) where
