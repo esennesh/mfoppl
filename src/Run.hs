@@ -39,10 +39,10 @@ eval (Appl f a) = do
   f <- eval f
   a <- eval a
   return (f a)
-eval (Let a f) = do
+eval (Bind a f) = do
   a <- eval a
   b <- eval (f a)
-  return (a, b)
+  return b
 eval (SampleE a d) = (eval d) >>= sample a
 eval (FactorE w)   = (eval w) >>= factor
 
