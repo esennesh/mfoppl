@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-module Run (ancestor, eval, randomize, run) where
+module Run (ancestor, eval, randomize, run, traceRandom) where
 
 import Control.Monad.Freer hiding (run)
 import Control.Monad.Freer.Fresh
