@@ -7,6 +7,7 @@ module Types
   , App (..)
   , Borel (..)
   , Distribution (..)
+  , Expr (..)
   , factor
   , Generative (..)
   , HilbertCube
@@ -83,3 +84,11 @@ instance Semigroup Trace where
 
 instance Monoid Trace where
   mempty = Trace (Map.empty, [])
+
+data Expr t where
+  Lit     :: t -> Expr t
+  If      :: Expr Bool -> Expr a -> Expr a -> Expr a
+  Appl    :: Expr (a -> b) -> Expr a -> Expr b
+  Let     :: Expr t -> (t -> Expr u) -> Expr (t, u)
+  SampleE :: StandardBorel t => String -> Expr (Distribution t) -> Expr t
+  FactorE :: Expr Double -> Expr ()
