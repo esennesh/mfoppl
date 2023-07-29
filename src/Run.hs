@@ -49,13 +49,11 @@ eval (FactorE w)   = (eval w) >>= factor
 seedCube :: RandomGen g => g -> HilbertCube
 seedCube g (v, i) = ((us g) !! i) where
   us :: RandomGen g => g -> [Double]
-  us g = (\(u, g') -> u:(us g')) $ random g
+  us = (\(u, g') -> u:(us g')) . random
 
 randomize :: (MonadIO m, LastMember m eff) =>
              Eff (FReader.Reader HilbertCube ': eff) t -> Eff eff t
-randomize p = do
-  g <- newStdGen
-  FReader.runReader (seedCube g) p
+randomize p = newStdGen >>= \g -> FReader.runReader (seedCube g) p
 
 ancestor :: MonadIO m => Eff '[Generative, FReader.Reader HilbertCube,
                                Writer Trace, Fresh, m] t ->
