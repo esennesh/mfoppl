@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-module Run (ancestor, eval, randomize, run, substitute, traceRandom) where
+module Run (ancestor, eval, prob, randomize, run, substitute, traceRandom) where
 
 import Control.Monad.Freer hiding (run)
 import Control.Monad.Freer.Fresh
@@ -35,6 +35,21 @@ runGenerative = interpret (\case
     query a subst = do
       borel <- Map.lookup a subst
       deBorel borel
+
+runDensity :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff =>
+              Bool -> Eff (Generative ': eff) a -> Eff eff a
+runDensity target = interpret (\case
+  Sample a d -> do
+    (subst, cube) <- FReader.ask
+    pc <- fresh
+    case (Map.lookup a subst) >>= deBorel of
+      Just val -> do
+        tell (WTrace (Map.singleton (a, pc) (borel val)) (pdf d val))
+        return val
+      Nothing -> let val = quantile d $ cube pc in do
+        tell (WTrace (Map.singleton (a, pc) (borel val)) 0)
+        return val
+  Factor w -> if target then tell (WTrace Map.empty w) else pure ())
 
 eval :: Member Generative eff => Expr t -> Eff eff t
 eval (Lit t) = pure t
@@ -77,6 +92,12 @@ substitute :: MonadIO m => Trace -> Eff '[Generative, FReader.Reader Variates,
                                           Writer WTrace, Fresh, m] t ->
                            m (t, WTrace)
 substitute trace = traceRandom trace . runGenerative
+
+prob :: MonadIO m => Trace -> Bool ->
+                        Eff '[Generative, FReader.Reader Variates,
+                              Writer WTrace, Fresh, m] t ->
+                        m (t, WTrace)
+prob trace target = traceRandom trace . runDensity target
 
 run :: RIO App ()
 run = do
