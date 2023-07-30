@@ -1,6 +1,5 @@
-module Examples where
+module Examples (sidewalk, stdNPrior) where
 
-import Run
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
 import Statistics.Distribution.Normal
