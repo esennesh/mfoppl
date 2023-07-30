@@ -14,6 +14,18 @@ import qualified Data.Map.Lazy as Map
 import Import
 import System.Random
 
+seedCube :: RandomGen g => g -> HilbertCube
+seedCube g i = ((us g) !! i) where
+  us :: RandomGen g => g -> [Double]
+  us = (\(u, g') -> u:(us g')) . random
+
+randomize :: (MonadIO m, LastMember m eff) => Trace ->
+             Eff (FReader.Reader Variates ': eff) t -> Eff eff t
+randomize trace p = do
+  g <- newStdGen
+  FReader.runReader (conds, seedCube g) p where
+    conds = Map.mapKeys (\(a, f) -> a) trace
+
 runRandomized :: Members '[FReader.Reader Variates, Fresh] eff =>
                  Eff (Randomized ': eff) a -> Eff eff a
 runRandomized = interpret (\case
@@ -70,18 +82,6 @@ eval (Bind a f) = do
   return b
 eval (SampleE a d) = (eval d) >>= sample a
 eval (FactorE w)   = (eval w) >>= factor
-
-seedCube :: RandomGen g => g -> HilbertCube
-seedCube g i = ((us g) !! i) where
-  us :: RandomGen g => g -> [Double]
-  us = (\(u, g') -> u:(us g')) . random
-
-randomize :: (MonadIO m, LastMember m eff) => Trace ->
-             Eff (FReader.Reader Variates ': eff) t -> Eff eff t
-randomize trace p = do
-  g <- newStdGen
-  FReader.runReader (conds, seedCube g) p where
-    conds = Map.mapKeys (\(a, f) -> a) trace
 
 traceRandom :: MonadIO m => Trace ->
                             Eff '[FReader.Reader Variates,
