@@ -14,13 +14,6 @@ import qualified Data.Map.Lazy as Map
 import Import
 import System.Random
 
-borelDist :: StandardBorel t => Distribution t -> Distribution Borel
-borelDist d = Distribution borelCdf borelPdf (borel . (quantile d)) where
-  borelCdf :: Borel -> Double
-  borelCdf b = fromMaybe 0 $ (cdf d) <$> deBorel b
-  borelPdf :: Borel -> Double
-  borelPdf b = fromMaybe 0 $ (pdf d) <$> deBorel b
-
 runGenerative :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff
                  => Eff (Generative ': eff) a -> Eff eff a
 runGenerative = interpret (\case
