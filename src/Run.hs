@@ -70,27 +70,30 @@ eval (Bind a f) = do
 eval (SampleE a d) = (eval d) >>= sample a
 eval (FactorE w)   = (eval w) >>= factor
 
-traceRandom :: MonadIO m => Trace ->
-                            Eff '[FReader.Reader Variates,
-                                  Writer WTrace, Fresh, m] t ->
-                            m (t, WTrace)
-traceRandom trace = runM . evalFresh 0 . runWriter . randomize trace
+runRandomizedM :: MonadIO m => Trace ->
+                               Eff '[Randomized, FReader.Reader Variates,
+                                     Writer WTrace, Fresh, m] t ->
+                               m (t, WTrace)
+runRandomizedM trace =
+  runM . evalFresh 0 . runWriter . runVariates trace . runRandomized
 
-ancestor :: MonadIO m => Eff '[Generative, FReader.Reader Variates,
+ancestor :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
 ancestor = substitute Map.empty
 
-substitute :: MonadIO m => Trace -> Eff '[Generative, FReader.Reader Variates,
-                                          Writer WTrace, Fresh, m] t ->
+substitute :: MonadIO m => Trace ->
+                           Eff '[Generative, Randomized,
+                                 FReader.Reader Variates, Writer WTrace, Fresh,
+                                 m] t ->
                            m (t, WTrace)
-substitute trace = traceRandom trace . runGenerative
+substitute trace = runRandomizedM trace . runGenerative
 
 prob :: MonadIO m => Trace -> Bool ->
-                        Eff '[Generative, FReader.Reader Variates,
-                              Writer WTrace, Fresh, m] t ->
-                        m (t, WTrace)
-prob trace target = traceRandom trace . runDensity target
+                     Eff '[Generative, Randomized, FReader.Reader Variates,
+                           Writer WTrace, Fresh, m] t ->
+                     m (t, WTrace)
+prob trace target = runRandomizedM trace . runDensity target
 
 run :: RIO App ()
 run = do
