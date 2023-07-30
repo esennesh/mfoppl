@@ -11,10 +11,10 @@ module Types
   , factor
   , Generative (..)
   , HilbertCube
+  , WTrace (..)
   , Options (..)
   , sample
   , StandardBorel (..)
-  , Trace (..)
   ) where
 
 import Control.Monad.Freer.TH
@@ -76,14 +76,15 @@ data Generative r where
 makeEffect ''Generative
 
 type Address = (String, Int)
-type HilbertCube = Address -> Double
-newtype Trace = Trace (Map.Map Address Borel, [Double]) deriving (Eq, Show)
+type HilbertCube = Int -> Double
+type Trace = Map.Map Address Borel
+data WTrace = WTrace Trace Double deriving (Eq, Show)
 
-instance Semigroup Trace where
-  (Trace (da, la)) <> (Trace (db, lb)) = Trace (Map.union da db, la ++ lb)
+instance Semigroup WTrace where
+  (WTrace ta wa) <> (WTrace tb wb) = WTrace (Map.union ta tb) (wa * wb)
 
-instance Monoid Trace where
-  mempty = Trace (Map.empty, [])
+instance Monoid WTrace where
+  mempty = WTrace Map.empty 1
 
 data Expr t where
   Lit     :: t -> Expr t
