@@ -4,7 +4,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
-module Run (ancestor, eval, randomize, run, traceRandom) where
+module Run (ancestor, eval, randomize, run, substitute, traceRandom) where
 
 import Control.Monad.Freer hiding (run)
 import Control.Monad.Freer.Fresh
@@ -71,7 +71,12 @@ traceRandom trace = runM . evalFresh 0 . runWriter . randomize trace
 ancestor :: MonadIO m => Eff '[Generative, FReader.Reader Variates,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
-ancestor = traceRandom Map.empty . runGenerative
+ancestor = substitute Map.empty
+
+substitute :: MonadIO m => Trace -> Eff '[Generative, FReader.Reader Variates,
+                                          Writer WTrace, Fresh, m] t ->
+                           m (t, WTrace)
+substitute trace = traceRandom trace . runGenerative
 
 run :: RIO App ()
 run = do
