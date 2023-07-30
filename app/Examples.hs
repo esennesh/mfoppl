@@ -40,6 +40,13 @@ substituteSidewalk = do
   return (WTrace trace1 w1, WTrace trace2 w2) where
     model = sidewalk 1 0.001
 
+sidewalkProb :: Bool -> IO (Int, WTrace)
+sidewalkProb target = do
+  (rain, WTrace trace w) <- ancestor . eval $ model
+  (_, WTrace _ m) <- prob trace target . eval $ model
+  return (rain, WTrace trace m) where
+    model = sidewalk 1 0.001
+
 -- def sidewalk_wet(wet, epsilon):
 --     assert 0. < epsilon and epsilon < 1.
 --     # Did it rain?
