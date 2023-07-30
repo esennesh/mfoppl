@@ -6,6 +6,7 @@ module Types
   ( Address
   , App (..)
   , Borel (..)
+  , Variates
   , Distribution (..)
   , Expr (..)
   , factor
@@ -15,6 +16,7 @@ module Types
   , Options (..)
   , sample
   , StandardBorel (..)
+  , Trace
   ) where
 
 import Control.Monad.Freer.TH
@@ -79,6 +81,7 @@ type Address = (String, Int)
 type HilbertCube = Int -> Double
 type Trace = Map.Map Address Borel
 data WTrace = WTrace Trace Double deriving (Eq, Show)
+type Variates = (Map.Map String Borel, HilbertCube)
 
 instance Semigroup WTrace where
   (WTrace ta wa) <> (WTrace tb wb) = WTrace (Map.union ta tb) (wa * wb)
