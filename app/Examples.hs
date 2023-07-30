@@ -1,4 +1,4 @@
-module Examples (sidewalk, stdNPrior, substituteSidewalk) where
+module Examples (sidewalk, sidewalkProb, stdNPrior, stdNProb, substituteSidewalk) where
 
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
@@ -20,7 +20,14 @@ bern p = binomial 1 p
 bernoulli p = let b = bern p in
  Distribution (cumulative b . fromIntegral) (probability b) (discreteQuantile b)
 
+stdNPrior :: Expr Double
 stdNPrior = SampleE "z" (Lit stdN)
+
+stdNProb :: IO (Double, WTrace)
+stdNProb = do
+  (z, WTrace trace w) <- ancestor . eval $ stdNPrior
+  (_, WTrace _ m) <- prob trace True . eval $ stdNPrior
+  return (z, WTrace trace m)
 
 sidewalk :: Int -> Double -> Expr Int
 sidewalk wet eps =
@@ -34,16 +41,15 @@ sidewalk wet eps =
 
 substituteSidewalk :: IO (WTrace, WTrace)
 substituteSidewalk = do
-  (rain1, WTrace trace1 w1) <- ancestor . eval $ sidewalk 1 0.001
-  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ sidewalk 1 0.001
+  (rain1, WTrace trace1 w1) <- ancestor . eval $ model
+  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ model
   putStrLn . show $ (rain1 == rain2)
-  return (WTrace trace1 w1, WTrace trace2 w2)
+  return (WTrace trace1 w1, WTrace trace2 w2) where
+    model = sidewalk 1 0.001
 
--- def sidewalk_wet(wet, epsilon):
---     assert 0. < epsilon and epsilon < 1.
---     # Did it rain?
---     rain = sample("rain", Bernoulli(0.8))
---     # Is the sidewalk wet?
---     p = 0.9 if rain else epsilon
---     factor("wet", Bernoulli(p).pmf(wet))
---     return rain
+sidewalkProb :: Bool -> IO (Int, WTrace)
+sidewalkProb target = do
+  (rain, WTrace trace w) <- ancestor . eval $ model
+  (_, WTrace _ m) <- prob trace target . eval $ model
+  return (rain, WTrace trace m) where
+    model = sidewalk 1 0.001
