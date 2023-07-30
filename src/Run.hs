@@ -21,16 +21,20 @@ borelDist d = Distribution borelCdf borelPdf (borel . (quantile d)) where
   borelPdf :: Borel -> Double
   borelPdf b = fromMaybe 0 $ (pdf d) <$> deBorel b
 
-runGenerative :: Members '[FReader.Reader HilbertCube, Writer WTrace, Fresh] eff
+runGenerative :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff
                  => Eff (Generative ': eff) a -> Eff eff a
 runGenerative = interpret (\case
   Sample a d -> do
-    cube <- FReader.ask
-    f <- fresh
-    let val = (quantile d) $ cube f in do
-      tell (WTrace (Map.singleton (a, f) (borel val)) 1)
+    (subst, cube) <- FReader.ask
+    pc <- fresh
+    let val = fromMaybe (quantile d $ cube pc) (query a subst) in do
+      tell (WTrace (Map.singleton (a, pc) (borel val)) 1)
       return val
-  Factor w -> tell (WTrace Map.empty w))
+  Factor w -> tell (WTrace Map.empty w)) where
+    query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
+    query a subst = do
+      borel <- Map.lookup a subst
+      deBorel borel
 
 eval :: Member Generative eff => Expr t -> Eff eff t
 eval (Lit t) = pure t
@@ -51,19 +55,23 @@ seedCube g i = ((us g) !! i) where
   us :: RandomGen g => g -> [Double]
   us = (\(u, g') -> u:(us g')) . random
 
-randomize :: (MonadIO m, LastMember m eff) =>
-             Eff (FReader.Reader HilbertCube ': eff) t -> Eff eff t
-randomize p = newStdGen >>= \g -> FReader.runReader (seedCube g) p
+randomize :: (MonadIO m, LastMember m eff) => Trace ->
+             Eff (FReader.Reader Variates ': eff) t -> Eff eff t
+randomize trace p = do
+  g <- newStdGen
+  FReader.runReader (conds, seedCube g) p where
+    conds = Map.mapKeys (\(a, f) -> a) trace
 
-traceRandom :: MonadIO m => Eff '[FReader.Reader HilbertCube,
+traceRandom :: MonadIO m => Trace ->
+                            Eff '[FReader.Reader Variates,
                                   Writer WTrace, Fresh, m] t ->
                             m (t, WTrace)
-traceRandom = runM . evalFresh 0 . runWriter . randomize
+traceRandom trace = runM . evalFresh 0 . runWriter . randomize trace
 
-ancestor :: MonadIO m => Eff '[Generative, FReader.Reader HilbertCube,
+ancestor :: MonadIO m => Eff '[Generative, FReader.Reader Variates,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
-ancestor = traceRandom . runGenerative
+ancestor = traceRandom Map.empty . runGenerative
 
 run :: RIO App ()
 run = do
