@@ -5,14 +5,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 module Run
-  (ancestor
-  , eval
-  , prob
+  ( eval
+  , replay
   , run
   , runRandomized
   , runRandomizedM
   , runVariates
-  , substitute
+  , simulate
+  , traceDensity
   ) where
 
 import Control.Monad.Freer hiding (run)
@@ -55,9 +55,9 @@ runGenerative = interpret (\case
       borel <- Map.lookup a subst
       deBorel borel
 
-runDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
+writeDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
               Eff (Generative ': eff) a -> Eff eff a
-runDensity target = interpret (\case
+writeDensity target = interpret (\case
   Sample a d -> do
     (pc, substituted, val) <- variate a (quantile d)
     let likelihood = if substituted then (pdf d val) else 0 in do
@@ -86,23 +86,22 @@ runRandomizedM :: MonadIO m => Trace ->
 runRandomizedM trace =
   runM . evalFresh 0 . runWriter . runVariates trace . runRandomized
 
-ancestor :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
+simulate :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
-ancestor = substitute Map.empty
+simulate = replay Map.empty
 
-substitute :: MonadIO m => Trace ->
-                           Eff '[Generative, Randomized,
-                                 FReader.Reader Variates, Writer WTrace, Fresh,
-                                 m] t ->
-                           m (t, WTrace)
-substitute trace = runRandomizedM trace . runGenerative
+replay :: MonadIO m => Trace ->
+                       Eff '[Generative, Randomized, FReader.Reader Variates,
+                             Writer WTrace, Fresh, m] t ->
+                       m (t, WTrace)
+replay trace = runRandomizedM trace . runGenerative
 
-prob :: MonadIO m => Trace -> Bool ->
+traceDensity :: MonadIO m => Trace -> Bool ->
                      Eff '[Generative, Randomized, FReader.Reader Variates,
                            Writer WTrace, Fresh, m] t ->
                      m (t, WTrace)
-prob trace target = runRandomizedM trace . runDensity target
+traceDensity trace target = runRandomizedM trace . writeDensity target
 
 run :: RIO App ()
 run = do
