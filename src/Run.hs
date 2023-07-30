@@ -5,14 +5,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 module Run
-  (ancestor
-  , eval
+  ( eval
   , prob
+  , replay
   , run
   , runRandomized
   , runRandomizedM
   , runVariates
-  , substitute
+  , simulate
   ) where
 
 import Control.Monad.Freer hiding (run)
@@ -86,17 +86,16 @@ runRandomizedM :: MonadIO m => Trace ->
 runRandomizedM trace =
   runM . evalFresh 0 . runWriter . runVariates trace . runRandomized
 
-ancestor :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
+simulate :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
-ancestor = substitute Map.empty
+simulate = replay Map.empty
 
-substitute :: MonadIO m => Trace ->
-                           Eff '[Generative, Randomized,
-                                 FReader.Reader Variates, Writer WTrace, Fresh,
-                                 m] t ->
-                           m (t, WTrace)
-substitute trace = runRandomizedM trace . runGenerative
+replay :: MonadIO m => Trace ->
+                       Eff '[Generative, Randomized, FReader.Reader Variates,
+                             Writer WTrace, Fresh, m] t ->
+                       m (t, WTrace)
+replay trace = runRandomizedM trace . runGenerative
 
 prob :: MonadIO m => Trace -> Bool ->
                      Eff '[Generative, Randomized, FReader.Reader Variates,

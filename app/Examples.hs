@@ -25,7 +25,7 @@ stdNPrior = SampleE "z" (Lit stdN)
 
 stdNProb :: IO (Double, WTrace)
 stdNProb = do
-  (z, WTrace trace w) <- ancestor . eval $ stdNPrior
+  (z, WTrace trace w) <- simulate . eval $ stdNPrior
   (_, WTrace _ m) <- prob trace True . eval $ stdNPrior
   return (z, WTrace trace m)
 
@@ -41,15 +41,15 @@ sidewalk wet eps =
 
 substituteSidewalk :: IO (WTrace, WTrace)
 substituteSidewalk = do
-  (rain1, WTrace trace1 w1) <- ancestor . eval $ model
-  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ model
+  (rain1, WTrace trace1 w1) <- simulate . eval $ model
+  (rain2, WTrace trace2 w2) <- replay trace1 . eval $ model
   putStrLn . show $ (rain1 == rain2)
   return (WTrace trace1 w1, WTrace trace2 w2) where
     model = sidewalk 1 0.001
 
 sidewalkProb :: Bool -> IO (Int, WTrace)
 sidewalkProb target = do
-  (rain, WTrace trace w) <- ancestor . eval $ model
+  (rain, WTrace trace w) <- simulate . eval $ model
   (_, WTrace _ m) <- prob trace target . eval $ model
   return (rain, WTrace trace m) where
     model = sidewalk 1 0.001
