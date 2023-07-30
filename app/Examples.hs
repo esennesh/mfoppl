@@ -46,12 +46,3 @@ sidewalkProb target = do
   (_, WTrace _ m) <- prob trace target . eval $ model
   return (rain, WTrace trace m) where
     model = sidewalk 1 0.001
-
--- def sidewalk_wet(wet, epsilon):
---     assert 0. < epsilon and epsilon < 1.
---     # Did it rain?
---     rain = sample("rain", Bernoulli(0.8))
---     # Is the sidewalk wet?
---     p = 0.9 if rain else epsilon
---     factor("wet", Bernoulli(p).pmf(wet))
---     return rain
