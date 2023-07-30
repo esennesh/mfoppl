@@ -1,8 +1,9 @@
-module Examples (sidewalk, stdNPrior) where
+module Examples (sidewalk, stdNPrior, substituteSidewalk) where
 
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
 import Statistics.Distribution.Normal
+import Run
 import Types
 
 stdN = Distribution (cumulative standard) (density standard)
@@ -30,6 +31,13 @@ sidewalk wet eps =
         (FactorE (Appl (Lit $ pdf (bernoulli p)) (Lit $ wet)))
         (\() -> Lit rain)
     )
+
+substituteSidewalk :: IO (WTrace, WTrace)
+substituteSidewalk = do
+  (rain1, WTrace trace1 w1) <- ancestor . eval $ sidewalk 1 0.001
+  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ sidewalk 1 0.001
+  putStrLn . show $ (rain1 == rain2)
+  return (WTrace trace1 w1, WTrace trace2 w2)
 
 -- def sidewalk_wet(wet, epsilon):
 --     assert 0. < epsilon and epsilon < 1.
