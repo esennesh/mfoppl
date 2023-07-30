@@ -14,6 +14,19 @@ import qualified Data.Map.Lazy as Map
 import Import
 import System.Random
 
+runRandomized :: Members '[FReader.Reader Variates, Fresh] eff =>
+                 Eff (Randomized ': eff) a -> Eff eff a
+runRandomized = interpret (\case
+  Variate addr quant -> do
+    (subst, cube) <- FReader.ask
+    pc <- fresh
+    case query addr subst of
+      Just val -> return (pc, True, val)
+      Nothing -> let val = quant (cube !! pc) in return (pc, False, val))
+  where
+    query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
+    query a subst = Map.lookup a subst >>= deBorel
+
 runGenerative :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff
                  => Eff (Generative ': eff) a -> Eff eff a
 runGenerative = interpret (\case
