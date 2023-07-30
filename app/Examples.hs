@@ -1,4 +1,4 @@
-module Examples (sidewalk, stdNPrior, substituteSidewalk) where
+module Examples (sidewalk, sidewalkProb, stdNPrior, substituteSidewalk) where
 
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
@@ -34,10 +34,11 @@ sidewalk wet eps =
 
 substituteSidewalk :: IO (WTrace, WTrace)
 substituteSidewalk = do
-  (rain1, WTrace trace1 w1) <- ancestor . eval $ sidewalk 1 0.001
-  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ sidewalk 1 0.001
+  (rain1, WTrace trace1 w1) <- ancestor . eval $ model
+  (rain2, WTrace trace2 w2) <- substitute trace1 . eval $ model
   putStrLn . show $ (rain1 == rain2)
-  return (WTrace trace1 w1, WTrace trace2 w2)
+  return (WTrace trace1 w1, WTrace trace2 w2) where
+    model = sidewalk 1 0.001
 
 -- def sidewalk_wet(wet, epsilon):
 --     assert 0. < epsilon and epsilon < 1.
