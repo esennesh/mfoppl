@@ -12,6 +12,7 @@ module Types
   , Generative (..)
   , HilbertCube
   , hilbertCube
+  , observe
   , Options (..)
   , Randomized (..)
   , sample
@@ -86,6 +87,12 @@ data Generative r where
   Sample :: StandardBorel t => String -> Distribution t -> Generative t
   Factor :: Double -> Generative ()
 makeEffect ''Generative
+
+observe :: (Member Generative eff, StandardBorel t) => Distribution t -> t ->
+           Eff eff t
+observe distribution observation = do
+  factor (pdf distribution observation)
+  return observation
 
 type Address = (String, Int)
 type HilbertCube = [Double]
