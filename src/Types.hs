@@ -12,11 +12,13 @@ module Types
   , factor
   , Generative (..)
   , HilbertCube
-  , WTrace (..)
   , Options (..)
+  , Randomized (..)
   , sample
   , StandardBorel (..)
   , Trace
+  , variate
+  , WTrace (..)
   ) where
 
 import Control.Monad.Freer.TH
@@ -71,6 +73,11 @@ data Distribution t = Distribution
   , pdf :: t -> Double
   , quantile :: Double -> t
   }
+
+data Randomized r where
+  Variate :: StandardBorel t => String -> (Double -> t) ->
+             Randomized (Int, Bool, t)
+makeEffect ''Randomized
 
 data Generative r where
   Sample :: StandardBorel t => String -> Distribution t -> Generative t
