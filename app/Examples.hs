@@ -1,5 +1,8 @@
-module Examples (sidewalk, sidewalkProb, stdNPrior, stdNProb, substituteSidewalk) where
+{-# LANGUAGE FlexibleContexts #-}
+module Examples (sidewalk, sidewalkDensity, sidewalkE, sidewalkProbE, stdNPrior,
+                 stdNProb, substituteSidewalkE) where
 
+import Control.Monad.Freer
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
 import Statistics.Distribution.Normal
@@ -34,8 +37,8 @@ stdNProb = do
   (_, WTrace _ m) <- traceDensity trace True . eval $ stdNPrior
   return (z, WTrace trace m)
 
-sidewalk :: Int -> Double -> Expr Int
-sidewalk wet eps =
+sidewalkE :: Int -> Double -> Expr Int
+sidewalkE wet eps =
   Bind
     (SampleE "rain" (Lit $ bernoulli 0.8))
     (\rain -> let p = (if rain > 0 then 0.9 else eps) in
@@ -44,17 +47,30 @@ sidewalk wet eps =
         (\() -> Lit rain)
     )
 
-substituteSidewalk :: IO (WTrace, WTrace)
-substituteSidewalk = do
+sidewalk :: Member Generative eff => Int -> Double -> Eff eff Int
+sidewalk wet eps = do
+  rain <- sample "rain" (bernoulli 0.8)
+  let pWet = if rain > 0 then 0.9 else eps in do
+    observe (bernoulli pWet) wet
+
+sidewalkDensity :: Bool -> IO (Int, WTrace)
+sidewalkDensity target = do
+  (rain, WTrace trace _) <- simulate model
+  (_, WTrace _ m) <- traceDensity trace target model
+  return (rain, WTrace trace m) where
+    model = sidewalk 1 0.001
+
+substituteSidewalkE :: IO (WTrace, WTrace)
+substituteSidewalkE = do
   (rain1, WTrace trace1 w1) <- simulate . eval $ model
   (rain2, WTrace trace2 w2) <- replay trace1 . eval $ model
   putStrLn . show $ (rain1 == rain2)
   return (WTrace trace1 w1, WTrace trace2 w2) where
-    model = sidewalk 1 0.001
+    model = sidewalkE 1 0.001
 
-sidewalkProb :: Bool -> IO (Int, WTrace)
-sidewalkProb target = do
+sidewalkProbE :: Bool -> IO (Int, WTrace)
+sidewalkProbE target = do
   (rain, WTrace trace _) <- simulate . eval $ model
   (_, WTrace _ m) <- traceDensity trace target . eval $ model
   return (rain, WTrace trace m) where
-    model = sidewalk 1 0.001
+    model = sidewalkE 1 0.001
