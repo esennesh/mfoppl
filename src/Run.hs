@@ -12,18 +12,12 @@ import Control.Monad.Freer.Reader as FReader
 import Control.Monad.Freer.Writer
 import qualified Data.Map.Lazy as Map
 import Import
-import System.Random
 
-seedCube :: RandomGen g => g -> HilbertCube
-seedCube g i = ((us g) !! i) where
-  us :: RandomGen g => g -> [Double]
-  us = (\(u, g') -> u:(us g')) . random
-
-randomize :: (MonadIO m, LastMember m eff) => Trace ->
-             Eff (FReader.Reader Variates ': eff) t -> Eff eff t
-randomize trace p = do
-  g <- newStdGen
-  FReader.runReader (conds, seedCube g) p where
+runVariates :: (MonadIO m, LastMember m eff) => Trace ->
+               Eff (FReader.Reader Variates ': eff) t -> Eff eff t
+runVariates trace p = do
+  cube <- hilbertCube
+  FReader.runReader (conds, cube) p where
     conds = Map.mapKeys (\(a, f) -> a) trace
 
 runRandomized :: Members '[FReader.Reader Variates, Fresh] eff =>
