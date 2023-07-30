@@ -6,13 +6,13 @@
 {-# LANGUAGE TypeOperators #-}
 module Run
   ( eval
-  , prob
   , replay
   , run
   , runRandomized
   , runRandomizedM
   , runVariates
   , simulate
+  , traceDensity
   ) where
 
 import Control.Monad.Freer hiding (run)
@@ -55,9 +55,9 @@ runGenerative = interpret (\case
       borel <- Map.lookup a subst
       deBorel borel
 
-runDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
+writeDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
               Eff (Generative ': eff) a -> Eff eff a
-runDensity target = interpret (\case
+writeDensity target = interpret (\case
   Sample a d -> do
     (pc, substituted, val) <- variate a (quantile d)
     let likelihood = if substituted then (pdf d val) else 0 in do
@@ -97,11 +97,11 @@ replay :: MonadIO m => Trace ->
                        m (t, WTrace)
 replay trace = runRandomizedM trace . runGenerative
 
-prob :: MonadIO m => Trace -> Bool ->
+traceDensity :: MonadIO m => Trace -> Bool ->
                      Eff '[Generative, Randomized, FReader.Reader Variates,
                            Writer WTrace, Fresh, m] t ->
                      m (t, WTrace)
-prob trace target = runRandomizedM trace . runDensity target
+traceDensity trace target = runRandomizedM trace . writeDensity target
 
 run :: RIO App ()
 run = do
