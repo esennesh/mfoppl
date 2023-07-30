@@ -6,7 +6,6 @@ module Types
   ( Address
   , App (..)
   , Borel (..)
-  , Variates
   , Distribution (..)
   , Expr (..)
   , factor
@@ -17,6 +16,7 @@ module Types
   , sample
   , StandardBorel (..)
   , Trace
+  , Variates
   , variate
   , WTrace (..)
   ) where
