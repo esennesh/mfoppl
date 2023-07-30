@@ -1,4 +1,4 @@
-module Examples (sidewalk, sidewalkProb, stdNPrior, substituteSidewalk) where
+module Examples (sidewalk, sidewalkProb, stdNPrior, stdNProb, substituteSidewalk) where
 
 import Statistics.Distribution hiding (Distribution)
 import Statistics.Distribution.Binomial
@@ -20,7 +20,14 @@ bern p = binomial 1 p
 bernoulli p = let b = bern p in
  Distribution (cumulative b . fromIntegral) (probability b) (discreteQuantile b)
 
+stdNPrior :: Expr Double
 stdNPrior = SampleE "z" (Lit stdN)
+
+stdNProb :: IO (Double, WTrace)
+stdNProb = do
+  (z, WTrace trace w) <- ancestor . eval $ stdNPrior
+  (_, WTrace _ m) <- prob trace True . eval $ stdNPrior
+  return (z, WTrace trace m)
 
 sidewalk :: Int -> Double -> Expr Int
 sidewalk wet eps =
