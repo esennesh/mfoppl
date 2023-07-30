@@ -33,34 +33,27 @@ runRandomized = interpret (\case
     query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
     query a subst = Map.lookup a subst >>= deBorel
 
-runGenerative :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff
-                 => Eff (Generative ': eff) a -> Eff eff a
+runGenerative :: Members '[Randomized, Writer WTrace] eff =>
+                 Eff (Generative ': eff) a -> Eff eff a
 runGenerative = interpret (\case
   Sample a d -> do
-    (subst, cube) <- FReader.ask
-    pc <- fresh
-    let val = fromMaybe (quantile d $ cube pc) (query a subst) in do
-      tell (WTrace (Map.singleton (a, pc) (borel val)) 1)
-      return val
+    (pc, _, val) <- variate a (quantile d)
+    tell (WTrace (Map.singleton (a, pc) (borel val)) 1)
+    return val
   Factor w -> tell (WTrace Map.empty w)) where
     query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
     query a subst = do
       borel <- Map.lookup a subst
       deBorel borel
 
-runDensity :: Members '[FReader.Reader Variates, Writer WTrace, Fresh] eff =>
-              Bool -> Eff (Generative ': eff) a -> Eff eff a
+runDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
+              Eff (Generative ': eff) a -> Eff eff a
 runDensity target = interpret (\case
   Sample a d -> do
-    (subst, cube) <- FReader.ask
-    pc <- fresh
-    case (Map.lookup a subst) >>= deBorel of
-      Just val -> do
-        tell (WTrace (Map.singleton (a, pc) (borel val)) (pdf d val))
-        return val
-      Nothing -> let val = quantile d $ cube pc in do
-        tell (WTrace (Map.singleton (a, pc) (borel val)) 0)
-        return val
+    (pc, substituted, val) <- variate a (quantile d)
+    let likelihood = if substituted then (pdf d val) else 0 in do
+      tell (WTrace (Map.singleton (a, pc) (borel val)) likelihood)
+      return val
   Factor w -> if target then tell (WTrace Map.empty w) else pure ())
 
 eval :: Member Generative eff => Expr t -> Eff eff t
