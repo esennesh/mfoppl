@@ -11,6 +11,7 @@ module Types
   , factor
   , Generative (..)
   , HilbertCube
+  , hilbertCube
   , Options (..)
   , Randomized (..)
   , sample
@@ -21,10 +22,12 @@ module Types
   , WTrace (..)
   ) where
 
+import Control.Monad.Freer
 import Control.Monad.Freer.TH
 import qualified Data.Map.Lazy as Map
 import RIO
 import RIO.Process
+import System.Random
 
 -- | Command line arguments
 data Options = Options
@@ -85,10 +88,17 @@ data Generative r where
 makeEffect ''Generative
 
 type Address = (String, Int)
-type HilbertCube = Int -> Double
+type HilbertCube = [Double]
 type Trace = Map.Map Address Borel
 data WTrace = WTrace Trace Double deriving (Eq, Show)
 type Variates = (Map.Map String Borel, HilbertCube)
+
+hilbertCube :: (MonadIO m, LastMember m eff) => Eff eff HilbertCube
+hilbertCube = do
+  g <- newStdGen
+  return (us g) where
+    us :: RandomGen g => g -> [Double]
+    us = (\(u, g') -> u:(us g')) . random
 
 instance Semigroup WTrace where
   (WTrace ta wa) <> (WTrace tb wb) = WTrace (Map.union ta tb) (wa * wb)
