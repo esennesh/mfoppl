@@ -73,8 +73,7 @@ instance (StandardBorel a, StandardBorel b) => StandardBorel (a, b) where
   deBorel _             = Nothing
 
 data Distribution t = Distribution
-  { cdf :: t -> Double
-  , pdf :: t -> Double
+  { pdf :: t -> Double
   , quantile :: Double -> t
   }
 

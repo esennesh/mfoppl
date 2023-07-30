@@ -10,7 +10,7 @@ import Run
 import Types
 
 stdN :: Distribution Double
-stdN = Distribution (cumulative standard) (density standard)
+stdN = Distribution (density standard)
                     (Statistics.Distribution.quantile standard)
 
 discreteQuantile :: DiscreteDistr d => d -> Double -> Int
@@ -26,7 +26,7 @@ bern p = binomial 1 p
 
 bernoulli :: Double -> Distribution Int
 bernoulli p = let b = bern p in
- Distribution (cumulative b . fromIntegral) (probability b) (discreteQuantile b)
+ Distribution (probability b) (discreteQuantile b)
 
 stdNPrior :: Expr Double
 stdNPrior = SampleE "z" (Lit stdN)
