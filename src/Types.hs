@@ -7,19 +7,17 @@ module Types
   , App (..)
   , Borel (..)
   , Distribution (..)
+  , draw
   , Expr (..)
   , factor
   , Generative (..)
-  , HilbertCube
-  , hilbertCube
   , observe
   , Options (..)
   , Randomized (..)
+  , Replay
   , sample
   , StandardBorel (..)
   , Trace
-  , Variates
-  , variate
   , WTrace (..)
   ) where
 
@@ -28,7 +26,6 @@ import Control.Monad.Freer.TH
 import qualified Data.Map.Lazy as Map
 import RIO
 import RIO.Process
-import System.Random
 
 -- | Command line arguments
 data Options = Options
@@ -75,8 +72,8 @@ instance (StandardBorel a, StandardBorel b) => StandardBorel (a, b) where
 data Distribution t = Distribution {pdf :: t -> Double, quantile :: Double -> t}
 
 data Randomized r where
-  Variate :: StandardBorel t => String -> (Double -> t) ->
-             Randomized (Int, Bool, t)
+  Draw :: StandardBorel t => String -> (Double -> t) ->
+          Randomized (Int, Bool, t)
 makeEffect ''Randomized
 
 data Generative r where
@@ -91,17 +88,9 @@ observe distribution observation = do
   return observation
 
 type Address = (String, Int)
-type HilbertCube = [Double]
 type Trace = Map.Map Address Borel
 data WTrace = WTrace Trace Double deriving (Eq, Show)
-type Variates = (Map.Map String Borel, HilbertCube)
-
-hilbertCube :: (MonadIO m, LastMember m eff) => Eff eff HilbertCube
-hilbertCube = do
-  g <- newStdGen
-  return (us g) where
-    us :: RandomGen g => g -> [Double]
-    us = (\(u, g') -> u:(us g')) . random
+type Replay = Map.Map String Borel
 
 instance Semigroup WTrace where
   (WTrace ta wa) <> (WTrace tb wb) = WTrace (Map.union ta tb) (wa * wb)
