@@ -10,7 +10,7 @@ module Run
   , run
   , runRandomized
   , runRandomizedM
-  , runVariates
+  , runReplay
   , simulate
   , traceDensity
   ) where
@@ -21,23 +21,24 @@ import Control.Monad.Freer.Reader as FReader
 import Control.Monad.Freer.Writer
 import qualified Data.Map.Lazy as Map
 import Import
+import System.Random
 
-runVariates :: (MonadIO m, LastMember m eff) => Trace ->
-               Eff (FReader.Reader Variates ': eff) t -> Eff eff t
-runVariates trace p = do
-  cube <- hilbertCube
-  FReader.runReader (conds, cube) p where
-    conds = Map.mapKeys (\(a, f) -> a) trace
+runReplay :: (MonadIO m, LastMember m eff) => Trace ->
+               Eff (FReader.Reader Replay ': eff) t -> Eff eff t
+runReplay trace = FReader.runReader subst where
+    subst = Map.mapKeys (\(a, f) -> a) trace
 
-runRandomized :: Members '[FReader.Reader Variates, Fresh] eff =>
-                 Eff (Randomized ': eff) a -> Eff eff a
+runRandomized :: (LastMember m eff, Members '[FReader.Reader Replay, Fresh] eff,
+                  MonadIO m) => Eff (Randomized ': eff) a -> Eff eff a
 runRandomized = interpret (\case
-  Variate addr quant -> do
-    (subst, cube) <- FReader.ask
+  Draw addr quant -> do
+    subst <- FReader.ask
     pc <- fresh
     case query addr subst of
       Just val -> return (pc, True, val)
-      Nothing -> let val = quant (cube !! pc) in return (pc, False, val))
+      Nothing -> do
+        u <- randomIO
+        return (pc, False, quant u))
   where
     query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
     query a subst = Map.lookup a subst >>= deBorel
@@ -46,7 +47,7 @@ runGenerative :: Members '[Randomized, Writer WTrace] eff =>
                  Eff (Generative ': eff) a -> Eff eff a
 runGenerative = interpret (\case
   Sample a d -> do
-    (pc, _, val) <- variate a (quantile d)
+    (pc, _, val) <- draw a (quantile d)
     tell (WTrace (Map.singleton (a, pc) (borel val)) 1)
     return val
   Factor w -> tell (WTrace Map.empty w)) where
@@ -59,8 +60,8 @@ writeDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
               Eff (Generative ': eff) a -> Eff eff a
 writeDensity target = interpret (\case
   Sample a d -> do
-    (pc, substituted, val) <- variate a (quantile d)
-    let likelihood = if substituted then (pdf d val) else 0 in do
+    (pc, replayed, val) <- draw a (quantile d)
+    let likelihood = if replayed then (pdf d val) else 0 in do
       tell (WTrace (Map.singleton (a, pc) (borel val)) likelihood)
       return val
   Factor w -> if target then tell (WTrace Map.empty w) else pure ())
@@ -80,25 +81,25 @@ eval (SampleE a d) = (eval d) >>= sample a
 eval (FactorE w)   = (eval w) >>= factor
 
 runRandomizedM :: MonadIO m => Trace ->
-                               Eff '[Randomized, FReader.Reader Variates,
+                               Eff '[Randomized, FReader.Reader Replay,
                                      Writer WTrace, Fresh, m] t ->
                                m (t, WTrace)
 runRandomizedM trace =
-  runM . evalFresh 0 . runWriter . runVariates trace . runRandomized
+  runM . evalFresh 0 . runWriter . runReplay trace . runRandomized
 
-simulate :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Variates,
+simulate :: MonadIO m => Eff '[Generative, Randomized, FReader.Reader Replay,
                                Writer WTrace, Fresh, m] t ->
                          m (t, WTrace)
 simulate = replay Map.empty
 
 replay :: MonadIO m => Trace ->
-                       Eff '[Generative, Randomized, FReader.Reader Variates,
+                       Eff '[Generative, Randomized, FReader.Reader Replay,
                              Writer WTrace, Fresh, m] t ->
                        m (t, WTrace)
 replay trace = runRandomizedM trace . runGenerative
 
 traceDensity :: MonadIO m => Trace -> Bool ->
-                     Eff '[Generative, Randomized, FReader.Reader Variates,
+                     Eff '[Generative, Randomized, FReader.Reader Replay,
                            Writer WTrace, Fresh, m] t ->
                      m (t, WTrace)
 traceDensity trace target = runRandomizedM trace . writeDensity target
