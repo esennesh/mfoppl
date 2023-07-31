@@ -72,10 +72,7 @@ instance (StandardBorel a, StandardBorel b) => StandardBorel (a, b) where
     return (ta, tb)
   deBorel _             = Nothing
 
-data Distribution t = Distribution
-  { pdf :: t -> Double
-  , quantile :: Double -> t
-  }
+data Distribution t = Distribution {pdf :: t -> Double, quantile :: Double -> t}
 
 data Randomized r where
   Variate :: StandardBorel t => String -> (Double -> t) ->
