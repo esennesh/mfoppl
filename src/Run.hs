@@ -50,11 +50,7 @@ runGenerative = interpret (\case
     (pc, _, val) <- draw a (quantile d)
     tell (WTrace (Map.singleton (a, pc) (borel val)) 1)
     return val
-  Factor w -> tell (WTrace Map.empty w)) where
-    query :: StandardBorel t => String -> Map.Map String Borel -> Maybe t
-    query a subst = do
-      borel <- Map.lookup a subst
-      deBorel borel
+  Factor w -> tell (WTrace Map.empty w))
 
 writeDensity :: Members '[Randomized, Writer WTrace] eff => Bool ->
               Eff (Generative ': eff) a -> Eff eff a
